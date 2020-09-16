@@ -10,7 +10,7 @@ When migrating a monolith, one of the big problems encountered is ensuring data 
 
 In a monolith, you can issue requests to a single database and trust each request will succeed or fail without leaving the database in a partially-committed state. 
 
-In a microservices-oriented architecture, the "database" is split across services. If you issue requests to all of these services, some may succeed and some may fail, leading to data inconsistency across the system. Imagine a trip service that tried to register your trip across a hotel, a flight and a car rental - but only the hotel registration succeeded! 
+In a microservices-oriented architecture, the "database" is split across many services. If you issue requests to all of these services, some may succeed and some may fail, leading to data inconsistency across the system. Imagine a trip service that tried to register your trip across a hotel, a flight and a car rental - but only the hotel registration succeeded! 
 
 You need a way to preserve the all-or-nothing property a single database provided.
 
@@ -48,9 +48,21 @@ Why does this help?
 
 # Our Work
 
-Source code for Qbox is [here](https://github.com/CSCI-2952-F/qbox). We present a report that doubles as high-level design documentation and benchmark results [here]().
+Under the hood, Qbox is just a glorified state machine embedded in a Layer 7 proxy. 
 
-To see how well this performs, we wrote Terraform scripts that automatically built GKE clusters in a variety of service mesh topologies using microservices adapted from Istio's bookinfo demo. We also built a baseline cluster with a central broke, using RabbitMQ as our choice. 
+Source code for Qbox is [here](https://github.com/CSCI-2952-F/qbox). We present a report that doubles as high-level design documentation and benchmark results [here](https://github.com/AkshatM/about-qbox/blob/master/qbox_final_report.pdf). 
+
+To see how well this performs, we wrote Terraform scripts that automatically built GKE clusters in a variety of service mesh topologies using microservices adapted from Istio's bookinfo demo [here](https://github.com/CSCI-2952-F/qbox-cluster). We also built a baseline cluster with a central broker (RabbitMQ) and the same services [here](https://github.com/CSCI-2952-F/baseline-qbox-cluster). 
+
+# Should you use this in production?
+
+Qbox was and will remain a *prototype*. It is a minimum viable product. A short summary why you shouldn't use as-is in production:
+
+1. We chose to only implement support for HTTP requests and no other protocols for simplicity.
+2. We chose to implement serial sequential unicast (sending transactions in order one after the other), again for simplicity. This greatly impacted performance, and we now believe sending transactions in parallel would have improved our performance significantly. 
+3. Qbox is written in pure Python 3 using its inbuilt HTTP server, rather than anything optimized for fast performance at runtime. 
+
+We believe future work should build on top of existing high-performance service mesh proxies like Envoy, and embed our framework for translating network behaviour into state machine bahviour. This solves all of the prior problems. 
 
 # Authors
 
